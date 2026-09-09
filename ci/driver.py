@@ -67,7 +67,7 @@ def setup(root, owned):
     runner.env["PATH"] = str(toolenv / "bin") + ":" + str(zig) + ":" + env["PATH"]
     versions = {}
     for tool in ("rustc", "cargo", "maturin", "zig", "auditwheel", "python3", "bwrap", "strace", "skopeo", "umoci"):
-        versions[tool] = runner.run([tool, "--version"], cwd=owned, phase=phase).strip()
+        versions[tool] = runner.run([tool, "version" if tool == "zig" else "--version"], cwd=owned, phase=phase).strip()
     return runner, [rust, Path(sys.prefix).resolve(), toolenv], versions
 
 
