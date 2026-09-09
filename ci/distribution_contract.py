@@ -123,6 +123,15 @@ def build_workflow(document):
     require(job.get("runs-on") == "ubuntu-24.04" and job.get("timeout-minutes") == 30
             and job.get("outputs") == {"manifest-sha256": "${{ steps.qualify.outputs.manifest-sha256 }}"})
     steps = job.get("steps", [])
+    require(len(steps) > 3 and steps[3] == {
+        "name": "Install sandbox and ELF tools", "timeout-minutes": 5,
+        "run": "test -s /etc/apt/sources.list.d/ubuntu.sources\n"
+               "apt_sources=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources "
+               "-o Dir::Etc::sourceparts=-)\n"
+               'sudo apt-get "${apt_sources[@]}" update --error-on=any\n'
+               'sudo apt-get "${apt_sources[@]}" install --no-install-recommends --yes '
+               "bubblewrap strace skopeo umoci patchelf binutils pkg-config\n"
+               "sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n"})
     require(len(steps) == 7 and steps[0].get("with") == {"persist-credentials": False}
             and steps[1].get("with") == {"python-version": "3.13.13"}
             and steps[2].get("with") == {"toolchain": "1.95.0", "components": "clippy"})

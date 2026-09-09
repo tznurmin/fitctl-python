@@ -50,7 +50,7 @@
         {
           "name": "Install sandbox and ELF tools",
           "timeout-minutes": 5,
-          "run": "sudo apt-get update\nsudo apt-get install --no-install-recommends --yes bubblewrap strace skopeo umoci patchelf binutils pkg-config\nsudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n"
+          "run": "test -s /etc/apt/sources.list.d/ubuntu.sources\napt_sources=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-)\nsudo apt-get \"${apt_sources[@]}\" update --error-on=any\nsudo apt-get \"${apt_sources[@]}\" install --no-install-recommends --yes bubblewrap strace skopeo umoci patchelf binutils pkg-config\nsudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n"
         },
         {
           "name": "Build once per configuration and qualify",
