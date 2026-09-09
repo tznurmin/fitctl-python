@@ -15,7 +15,7 @@ WHEEL = "fitctl-0.1.0-cp313-cp313-manylinux_2_28_x86_64.whl"
 SDIST = "fitctl-0.1.0.tar.gz"
 RUNTIMES = {"direct:3.13.0", "direct:3.13.13", "sdist:3.13.0", "sdist:3.13.13"}
 DOWNLOAD = "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
-PUBLISH = "pypa/gh-action-pypi-publish@106e0b0b7c337fa67ed433972f777c6357f78598"
+PUBLISH = "pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
 
 
 def require(value):
