@@ -1,0 +1,83 @@
+{
+  "name": "Build and test distributions",
+  "on": {
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pull_request": {},
+    "workflow_dispatch": {},
+    "workflow_call": {
+      "outputs": {
+        "manifest-sha256": {
+          "description": "SHA-256 of the tested artifact manifest",
+          "value": "${{ jobs.build.outputs.manifest-sha256 }}"
+        }
+      }
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "jobs": {
+    "build": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "outputs": {
+        "manifest-sha256": "${{ steps.qualify.outputs.manifest-sha256 }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "uses": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+          "with": {
+            "python-version": "3.13.13"
+          }
+        },
+        {
+          "uses": "dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0",
+          "with": {
+            "toolchain": "1.95.0",
+            "components": "clippy"
+          }
+        },
+        {
+          "name": "Install sandbox and ELF tools",
+          "timeout-minutes": 5,
+          "run": "sudo apt-get update\nsudo apt-get install --no-install-recommends --yes bubblewrap strace skopeo umoci patchelf binutils pkg-config\nsudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n"
+        },
+        {
+          "name": "Build once per configuration and qualify",
+          "id": "qualify",
+          "run": "python -B ci/gate.py"
+        },
+        {
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "qualification-evidence",
+            "path": "qualification.json",
+            "if-no-files-found": "error",
+            "retention-days": 7
+          }
+        },
+        {
+          "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "with": {
+            "name": "tested-distributions",
+            "path": "release-artifacts/",
+            "if-no-files-found": "error",
+            "retention-days": 7,
+            "compression-level": 0,
+            "overwrite": false
+          }
+        }
+      ]
+    }
+  }
+}

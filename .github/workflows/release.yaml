@@ -1,0 +1,57 @@
+{
+  "name": "Release",
+  "on": {
+    "workflow_dispatch": {
+      "inputs": {
+        "publish": {
+          "description": "Publish the tested 0.1.0 artifacts",
+          "type": "boolean",
+          "required": true,
+          "default": false
+        }
+      }
+    }
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "jobs": {
+    "qualify": {
+      "uses": "./.github/workflows/build.yaml"
+    },
+    "publish": {
+      "runs-on": "ubuntu-24.04",
+      "needs": "qualify",
+      "if": "${{ inputs.publish }}",
+      "environment": "pypi",
+      "permissions": {
+        "id-token": "write"
+      },
+      "timeout-minutes": 10,
+      "steps": [
+        {
+          "uses": "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+          "with": {
+            "name": "tested-distributions",
+            "path": "release-artifacts"
+          }
+        },
+        {
+          "name": "Verify exact tested artifacts",
+          "shell": "python",
+          "env": {
+            "MANIFEST_SHA256": "${{ needs.qualify.outputs.manifest-sha256 }}"
+          },
+          "run": "# Copyright 2026 fitctl contributors\n# SPDX-License-Identifier: Apache-2.0\n\n\"\"\"Generated into the upload workflow; validation only, never a build.\"\"\"\n\nimport hashlib\nimport json\nimport os\nfrom pathlib import Path\n\nroot = Path(\"release-artifacts\")\nmanifest = root / \"manifest.json\"\nif manifest.is_symlink() or manifest.stat().st_size > 65536:\n    raise ValueError(\"distribution verification failed\")\ndata = manifest.read_bytes()\nif hashlib.sha256(data).hexdigest() != os.environ[\"MANIFEST_SHA256\"]:\n    raise ValueError(\"distribution verification failed\")\ndocument = json.loads(data)\nexpected_names = {\"fitctl-0.1.0.tar.gz\", \"fitctl-0.1.0-cp313-cp313-manylinux_2_28_x86_64.whl\"}\nexpected_tests = {\"direct:3.13.0\", \"direct:3.13.13\", \"sdist:3.13.0\", \"sdist:3.13.13\"}\nif (set(document) != {\"version\", \"artifacts\", \"passed\"} or document[\"version\"] != \"0.1.0\"\n        or len(document[\"passed\"]) != 4 or set(document[\"passed\"]) != expected_tests\n        or set(document[\"artifacts\"]) != expected_names\n        or {p.name for p in root.iterdir()} != {\"dist\", \"manifest.json\"}\n        or (root / \"dist\").is_symlink()\n        or {p.name for p in (root / \"dist\").iterdir()} != expected_names):\n    raise ValueError(\"distribution verification failed\")\nfor name, expected in document[\"artifacts\"].items():\n    path = root / \"dist\" / name\n    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 256 * 1024**2:\n        raise ValueError(\"distribution verification failed\")\n    with path.open(\"rb\") as stream:\n        actual = hashlib.file_digest(stream, \"sha256\").hexdigest()\n    if actual != expected:\n        raise ValueError(\"distribution verification failed\")\nprint(\"Exact tested artifacts verified\")\n"
+        },
+        {
+          "uses": "pypa/gh-action-pypi-publish@106e0b0b7c337fa67ed433972f777c6357f78598",
+          "with": {
+            "packages-dir": "release-artifacts/dist/",
+            "skip-existing": false
+          }
+        }
+      ]
+    }
+  }
+}

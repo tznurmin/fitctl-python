@@ -1,0 +1,6 @@
+# Copyright 2026 fitctl contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Preserve the reviewed NOTICE bytes in source snapshots.
+NOTICE -text
+THIRD_PARTY_LICENSES.txt -text
