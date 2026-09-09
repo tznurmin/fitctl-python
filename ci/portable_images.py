@@ -42,8 +42,16 @@ def acquire(version, runner, phase):
     destination.mkdir(parents=True)
     auth = destination / "auth.json"
     auth.write_text('{"auths":{}}')
+    registries = destination / "registries.d"
+    signatures = destination / "signatures"
+    registries.mkdir()
+    signatures.mkdir()
+    # An explicit nonempty URL also overrides older containers/image defaults.
+    (registries / "default.yaml").write_text(json.dumps({
+        "default-docker": {"lookaside": signatures.as_uri()}}))
     source = "docker://docker.io/library/python@sha256:" + IMAGES[version]
-    runner.run(["skopeo", "--insecure-policy", "copy", "--authfile", str(auth),
+    runner.run(["skopeo", "--insecure-policy", "--registries.d", str(registries),
+                "copy", "--authfile", str(auth),
                 "--preserve-digests", source, "oci:" + str(destination / "oci") + ":runtime"],
                cwd=runner.owned, phase=phase)
     index = json.loads((destination / "oci/index.json").read_bytes())
