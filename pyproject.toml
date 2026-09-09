@@ -1,0 +1,27 @@
+# Copyright 2026 fitctl contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["maturin==1.12.6"]
+build-backend = "ci.build_backend"
+backend-path = ["."]
+
+[project]
+name = "fitctl"
+version = "0.1.0"
+description = "Python bindings for fitctl"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dynamic = ["license"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.txt"]
+dependencies = []
+
+[tool.maturin]
+manifest-path = "rust/Cargo.toml"
+python-source = "python"
+module-name = "fitctl._native"
+sdist-generator = "git"
+features = ["extension-module"]
+
+[tool.maturin.sbom]
+rust = false

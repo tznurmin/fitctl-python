@@ -1,0 +1,4 @@
+"""Inert negative-control source; never an installed implementation."""
+__version__ = "0.1.0.dev0"
+core_version = "0.8.0-dev"
+semantic_encoding = "fitctl.semantic_cbor.v2"

@@ -1,0 +1,14 @@
+{
+  "files": {
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "NOTICE": "857bb0e6258426aa19cf472764201d734887394b7554431beb8bbad4cacbc953",
+    "THIRD_PARTY_LICENSES.txt": "b67e56c7be1dbca31b489c97b44f80a6bb07788bcd1378ebc113e629c8999253"
+  },
+  "license_expressions": {
+    "sdist": "Apache-2.0",
+    "wheel": "Apache-2.0 AND BlueOak-1.0.0 AND MIT AND Unicode-3.0"
+  },
+  "profile": "whitespace-v1",
+  "schema_id": "license-release-files.v1",
+  "schema_version": 1
+}

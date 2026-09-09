@@ -1,0 +1,30 @@
+# Copyright 2026 fitctl contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "fitctl-native"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+fitctl-core = "=0.8.0"
+pyo3 = { version = "=0.29.2", default-features = false, features = ["macros"] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+
+[profile.dev]
+panic = "unwind"
+debug = 0
+
+[profile.release]
+panic = "unwind"
+debug = 0

@@ -1,0 +1,8 @@
+# Copyright 2026 fitctl contributors
+# SPDX-License-Identifier: Apache-2.0
+
+maturin==1.12.6
+ziglang==0.15.2
+auditwheel==6.7.0
+packaging==26.1
+pyelftools==0.32
