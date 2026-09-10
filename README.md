@@ -4,17 +4,17 @@ Use [fitctl](https://github.com/tznurmin/fitctl) from Python to collect host evi
 and check whether a host meets a workload's requirements.
 
 The bindings call `fitctl-core` directly. You do not need the fitctl command-line
-tool. Version 0.1.0 uses fitctl-core 0.8.0.
+tool. Version 0.1.1 uses fitctl-core 0.8.0.
 
 ## Install
 
-The wheel supports standard CPython 3.13.x on Linux x86_64 with glibc 2.28 or newer.
-Other Python versions, free-threaded Python, macOS and Windows are not supported
-by this release.
+Requires Python 3.12 or newer. The wheel is tested with ordinary CPython 3.12,
+3.13 and 3.14 on Linux x86_64 with glibc 2.28 or newer. It requires the GIL;
+free-threaded Python, macOS and Windows are not supported by this release.
 
 ```sh
-python3.13 -m venv .venv
-.venv/bin/python -m pip install fitctl==0.1.0
+python3 -m venv .venv
+.venv/bin/python -m pip install fitctl==0.1.1
 ```
 
 ## Collect host evidence
@@ -43,8 +43,8 @@ survey = fitctl.Artifact.from_json(
 print(survey.artifact_id)
 ```
 
-See [recorded evidence and decisions](docs/recorded.md) to derive a contract and
-validate it, [batch comparison](docs/batch.md) to compare several inputs, and
-[evidence collection](docs/collection.md) for storage and sensor checks.
+See [recorded evidence and decisions](https://github.com/tznurmin/fitctl-python/blob/main/docs/recorded.md) to derive a contract and
+validate it, [batch comparison](https://github.com/tznurmin/fitctl-python/blob/main/docs/batch.md) to compare several inputs, and
+[evidence collection](https://github.com/tznurmin/fitctl-python/blob/main/docs/collection.md) for storage and sensor checks.
 
-Licensed under [Apache 2.0](LICENSE). Third-party licenses and notices are in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+Licensed under [Apache 2.0](https://github.com/tznurmin/fitctl-python/blob/main/LICENSE). Third-party licenses and notices are in [THIRD_PARTY_LICENSES.txt](https://github.com/tznurmin/fitctl-python/blob/main/THIRD_PARTY_LICENSES.txt).

@@ -11,8 +11,8 @@ from .installed_process import execute
 from .portable_runtime import command, ROOTS
 
 IDENTITY = ("source", "origin", "standin", "forged", "elf", "canary", "descriptor", "closure",
-            "core_version", "semantic_encoding", "typing", "marker", "hook", "cp313t", "abi3",
-            "python312", "platform", "machine")
+            "core_version", "semantic_encoding", "typing", "marker", "hook", "free_threaded", "soabi",
+            "python311", "platform", "machine")
 EFFECTS = tuple(prefix + name for prefix in ("effect:", "import_effect:")
                 for name in ("open", "stat", "write", "memfd", "exec", "fork", "socket", "connect"))
 

@@ -54,7 +54,8 @@ def execute(env, tests, runtime, selected, runner, phase, *, collect_failures=Fa
     try:
         traces = {int(path.name.split(".")[-1]): parse_trace(int(path.name.split(".")[-1]), path.read_text())
                   for path in temporary.glob("trace.*")}
-        observed = check_trace(traces, observations, runtime)
+        configuration = json.loads((tests / "qualification-input.json").read_bytes())
+        observed = check_trace(traces, observations, runtime, python_version=configuration.get("python_version", "3.13.13"))
     except RecordedFailure as error:
         if selected == "isolation-probe" and "traces" in locals():
             from recorded_descriptors import PATH_ARGS

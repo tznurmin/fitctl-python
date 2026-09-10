@@ -7,13 +7,15 @@ import hashlib
 import json
 import re
 
+from .archive_metadata import PROJECT_URLS, PYTHON_VERSIONS, TAG
+
 CORE_SHA256 = "0aa75a2b76afcd3530a53fc7c803371cc0165088eee8682633edbc9bede676e8"
 # Pinned registry build inputs; graph membership does not imply redistribution.
 DEPENDENCY_SET_SHA256 = "8cf997e0645d2d4e5ecaf304756ef2e5ea48a3e55e52a124cda9971ba2b59dfb"
 REGISTRY = "registry+https://github.com/rust-lang/crates.io-index"
-WHEEL = "fitctl-0.1.0-cp313-cp313-manylinux_2_28_x86_64.whl"
-SDIST = "fitctl-0.1.0.tar.gz"
-RUNTIMES = {"direct:3.13.0", "direct:3.13.13", "sdist:3.13.0", "sdist:3.13.13"}
+WHEEL = "fitctl-0.1.1-cp312-abi3-manylinux_2_28_x86_64.whl"
+SDIST = "fitctl-0.1.1.tar.gz"
+RUNTIMES = {variant + ":" + version for variant in ("direct", "sdist") for version in PYTHON_VERSIONS}
 DOWNLOAD = "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
 PUBLISH = "pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
 
@@ -29,17 +31,19 @@ def sha256(value):
 
 def sources(pyproject, cargo, lock):
     project = pyproject.get("project", {})
-    require(project.get("name") == "fitctl" and project.get("version") == "0.1.0"
-            and project.get("requires-python") == ">=3.13,<3.14"
+    require(project.get("name") == "fitctl" and project.get("version") == "0.1.1"
+            and project.get("requires-python") == ">=3.12"
+            and project.get("urls") == PROJECT_URLS
             and "license" not in project and project.get("dynamic") == ["license"]
             and project.get("license-files") == ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.txt"]
             and project.get("dependencies") == [])
     require(pyproject.get("build-system") == {
         "requires": ["maturin==1.12.6"], "build-backend": "ci.build_backend", "backend-path": ["."]})
-    require(cargo.get("package", {}).get("version") == "0.1.0"
+    require(cargo.get("package", {}).get("version") == "0.1.1"
             and cargo.get("package", {}).get("license") == "Apache-2.0"
             and cargo.get("dependencies", {}).get("fitctl-core") == "=0.8.0"
             and not any(key in cargo for key in ("patch", "replace")))
+    require(cargo.get("features", {}).get("extension-module") == ["pyo3/extension-module", "pyo3/abi3-py312"])
     for dependency in cargo["dependencies"].values():
         require(type(dependency) is str or (type(dependency) is dict
                 and not {"path", "git", "registry", "registry-index"} & dependency.keys()))
@@ -51,14 +55,14 @@ def sources(pyproject, cargo, lock):
         require(identity not in names)
         names.add(identity)
         if package.get("name") == "fitctl-native":
-            require(package.get("version") == "0.1.0"
+            require(package.get("version") == "0.1.1"
                     and not {"source", "checksum"} & package.keys())
         else:
             require(package.get("source") == REGISTRY and sha256(package.get("checksum")))
     core = [package for package in packages if package.get("name") == "fitctl-core"]
     require(len(core) == 1 and core[0].get("version") == "0.8.0"
             and core[0].get("checksum") == CORE_SHA256)
-    require(("fitctl-native", "0.1.0") in names)
+    require(("fitctl-native", "0.1.1") in names)
     locked = sorted((p["name"], p["version"], p["checksum"]) for p in packages if p.get("source"))
     require(hashlib.sha256(json.dumps(locked, separators=(",", ":")).encode()).hexdigest()
             == DEPENDENCY_SET_SHA256)
@@ -67,7 +71,7 @@ def sources(pyproject, cargo, lock):
 def portability(report):
     require(type(report) is dict and set(report) == {
         "tag", "machine", "glibc", "rpaths", "external", "python", "gil"})
-    require(report["tag"] == "cp313-cp313-manylinux_2_28_x86_64"
+    require(report["tag"] == TAG
             and report["machine"] == "x86_64" and report["gil"] is True)
     glibc = report["glibc"]
     require(type(glibc) is list and len(glibc) == 2
@@ -79,12 +83,12 @@ def portability(report):
                                        "libpthread.so.0", "libdl.so.2", "librt.so.1",
                                        "ld-linux-x86-64.so.2"})
     require(type(report["python"]) is str
-            and re.fullmatch(r"3\.13\.(0|[1-9][0-9]*)", report["python"]) is not None)
+            and report["python"] in PYTHON_VERSIONS)
 
 
 def artifact_manifest(document, actual):
     require(type(document) is dict and set(document) == {"version", "artifacts", "passed"}
-            and document["version"] == "0.1.0" and type(actual) is dict
+            and document["version"] == "0.1.1" and type(actual) is dict
             and set(actual) == {WHEEL, SDIST} and all(sha256(value) for value in actual.values())
             and document["artifacts"] == actual and type(document["passed"]) is list
             and len(document["passed"]) == len(RUNTIMES) and set(document["passed"]) == RUNTIMES)
@@ -92,7 +96,7 @@ def artifact_manifest(document, actual):
 
 def workflow(document):
     require(type(document) is dict and document.get("on") == {"workflow_dispatch": {
-        "inputs": {"publish": {"description": "Publish the tested 0.1.0 artifacts", "type": "boolean",
+        "inputs": {"publish": {"description": "Publish the tested 0.1.1 artifacts", "type": "boolean",
                                "required": True, "default": False}}}})
     require(document.get("permissions") == {"contents": "read"})
     jobs = document.get("jobs", {})

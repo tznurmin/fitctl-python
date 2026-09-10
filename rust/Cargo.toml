@@ -3,7 +3,7 @@
 
 [package]
 name = "fitctl-native"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
@@ -13,7 +13,7 @@ name = "_native"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-extension-module = ["pyo3/extension-module"]
+extension-module = ["pyo3/extension-module", "pyo3/abi3-py312"]
 
 [dependencies]
 fitctl-core = "=0.8.0"

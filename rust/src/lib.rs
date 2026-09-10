@@ -61,7 +61,7 @@ mod number_tests;
 
 use pyo3::prelude::*;
 
-#[pymodule]
+#[pymodule(gil_used = true)]
 fn _native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     attached_boundary::initialize(module, |module| {
         error::register(module)?;

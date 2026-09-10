@@ -16,10 +16,11 @@ data = manifest.read_bytes()
 if hashlib.sha256(data).hexdigest() != os.environ["MANIFEST_SHA256"]:
     raise ValueError("distribution verification failed")
 document = json.loads(data)
-expected_names = {"fitctl-0.1.0.tar.gz", "fitctl-0.1.0-cp313-cp313-manylinux_2_28_x86_64.whl"}
-expected_tests = {"direct:3.13.0", "direct:3.13.13", "sdist:3.13.0", "sdist:3.13.13"}
-if (set(document) != {"version", "artifacts", "passed"} or document["version"] != "0.1.0"
-        or len(document["passed"]) != 4 or set(document["passed"]) != expected_tests
+expected_names = {"fitctl-0.1.1.tar.gz", "fitctl-0.1.1-cp312-abi3-manylinux_2_28_x86_64.whl"}
+expected_tests = {variant + ":" + version for variant in ("direct", "sdist")
+                  for version in ("3.12.13", "3.13.0", "3.13.13", "3.14.4")}
+if (set(document) != {"version", "artifacts", "passed"} or document["version"] != "0.1.1"
+        or len(document["passed"]) != len(expected_tests) or set(document["passed"]) != expected_tests
         or set(document["artifacts"]) != expected_names
         or {p.name for p in root.iterdir()} != {"dist", "manifest.json"}
         or (root / "dist").is_symlink()

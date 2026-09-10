@@ -38,8 +38,9 @@ def probe(path):
 
 
 class Scope:
-    def __init__(self, name, handles, runtime, children):
+    def __init__(self, name, handles, runtime, children, *, python_version="3.13.13"):
         self.name, self.handles, self.runtime, self.children = name, handles, runtime, children
+        self.python_version = python_version
         self.opened, self.pipes = set(), set()
         self.spawned = []
 

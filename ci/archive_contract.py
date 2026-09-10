@@ -139,4 +139,4 @@ def validate_archive(kind, stream, *, expected_package, limits):
     validate_content(kind, contents, expected_package, modes)
     members = ((name, len(data), hashlib.sha256(data).hexdigest(), modes[name])
                for name, data in contents.items())
-    return ArchiveInventory(tuple(sorted(members)), "fitctl", "0.1.0")
+    return ArchiveInventory(tuple(sorted(members)), "fitctl", "0.1.1")

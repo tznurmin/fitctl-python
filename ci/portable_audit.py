@@ -8,6 +8,7 @@ import re
 import zipfile
 
 from .distribution_contract import portability, require, WHEEL
+from .archive_metadata import NATIVE, TAG
 
 
 def wheel_command(python, destination):
@@ -42,11 +43,11 @@ def inspect(wheel, runner, phase):
         names = archive.namelist()
         require(len(names) == len(set(names)))
         natives = [name for name in names if name.endswith(".so")]
-        require(natives == ["fitctl/_native.cpython-313-x86_64-linux-gnu.so"])
+        require(natives == [NATIVE])
         require(archive.getinfo(natives[0]).file_size <= 64 * 1024**2)
         data = archive.read(natives[0])
-        metadata = BytesParser().parsebytes(archive.read("fitctl-0.1.0.dist-info/WHEEL"))
-        require(metadata.get_all("Tag") == ["cp313-cp313-manylinux_2_28_x86_64"])
+        metadata = BytesParser().parsebytes(archive.read("fitctl-0.1.1.dist-info/WHEEL"))
+        require(metadata.get_all("Tag") == [TAG])
     require(data[:6] == b"\x7fELF\x02\x01" and int.from_bytes(data[18:20], "little") == 62)
     native = runner.owned / ("audit-" + wheel.parent.name + ".so")
     require(not native.exists())

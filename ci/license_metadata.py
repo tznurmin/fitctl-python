@@ -82,9 +82,9 @@ def _finalize(kind, path):
         invalid()
     with path.open("rb") as stream:
         contents, modes = read_archive(kind, stream, limits=Limits())
-    prefix = DIST_INFO + "licenses/" if kind == "wheel" else "fitctl-0.1.0/"
+    prefix = DIST_INFO + "licenses/" if kind == "wheel" else "fitctl-0.1.1/"
     notices({name: contents[prefix + name] for name in LEGAL_FILES if prefix + name in contents})
-    key = DIST_INFO + "METADATA" if kind == "wheel" else "fitctl-0.1.0/PKG-INFO"
+    key = DIST_INFO + "METADATA" if kind == "wheel" else "fitctl-0.1.1/PKG-INFO"
     if key not in contents:
         invalid()
     if kind == "wheel":

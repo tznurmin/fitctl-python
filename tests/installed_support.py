@@ -39,7 +39,9 @@ def runtime_import(name):
 
 def inspect_installation(module):
     native = sys.modules["fitctl._native"]
-    site = Path("/env/lib/python3.13/site-packages")
+    version = EXPECTED.get("python_version", "3.13.13")
+    minor = ".".join(version.split(".")[:2])
+    site = Path("/env/lib/python" + minor + "/site-packages")
     for value in (module, native):
         origin = Path(value.__file__).resolve(strict=True)
         if not origin.is_relative_to(site) or value.__spec__.origin != value.__file__:
@@ -57,15 +59,15 @@ def inspect_installation(module):
                 raise AssertionError("native class factory required")
     path = Path(native.__file__)
     data = path.read_bytes()
-    if (path.name != "_native.cpython-313-x86_64-linux-gnu.so" or not data.startswith(b"\x7fELF")
+    if (path.name != "_native.abi3.so" or not data.startswith(b"\x7fELF")
             or hashlib.sha256(data).hexdigest() != EXPECTED["native_sha256"]):
         raise AssertionError("native extension identity invalid")
     if ((module.__version__, module.core_version, module.semantic_encoding)
-            != ("0.1.0", "0.8.0", "fitctl.semantic_cbor.v2")):
+            != ("0.1.1", "0.8.0", "fitctl.semantic_cbor.v2")):
         raise AssertionError("public version identity invalid")
-    version = EXPECTED.get("python_version", "3.13.13")
-    if (version not in {"3.13.0", "3.13.13"} or platform.python_version() != version
-            or sysconfig.get_config_var("SOABI") != "cpython-313-x86_64-linux-gnu"
+    if (version not in {"3.12.13", "3.13.0", "3.13.13", "3.14.4"} or platform.python_version() != version
+            or sys.implementation.name != "cpython"
+            or sysconfig.get_config_var("SOABI") != "cpython-" + minor.replace(".", "") + "-x86_64-linux-gnu"
             or sysconfig.get_config_var("Py_GIL_DISABLED") or sys.platform != "linux" or platform.machine() != "x86_64"):
         raise AssertionError("runtime identity invalid")
     if sys.prefix != "/env" or not sys.flags.isolated or not sys.dont_write_bytecode:

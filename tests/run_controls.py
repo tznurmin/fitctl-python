@@ -97,10 +97,13 @@ def identity(name, module):
     elif name == "hook":
         with patch.object(native, "inject_fault", lambda: None, create=True):
             rejected(lambda: checks.inspect_installation(module), "release test hook exposed")
-    elif name in ("cp313t", "abi3", "python312", "platform", "machine"):
-        target, value = {"cp313t": ("sysconfig.get_config_var", "cpython-313t-x86_64-linux-gnu"),
-                         "abi3": ("sysconfig.get_config_var", "abi3"),
-                         "python312": ("platform.python_version", "3.12.0"),
+    elif name == "free_threaded":
+        original = checks.sysconfig.get_config_var
+        with patch.object(checks.sysconfig, "get_config_var", side_effect=lambda key: 1 if key == "Py_GIL_DISABLED" else original(key)):
+            rejected(lambda: checks.inspect_installation(module), "runtime identity invalid")
+    elif name in ("soabi", "python311", "platform", "machine"):
+        target, value = {"soabi": ("sysconfig.get_config_var", "abi3"),
+                         "python311": ("platform.python_version", "3.11.0"),
                          "platform": ("sys.platform", "darwin"), "machine": ("platform.machine", "aarch64")}[name]
         options = {"new": value} if name == "platform" else {"return_value": value}
         with patch(target, **options):

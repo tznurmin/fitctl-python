@@ -14,6 +14,7 @@ import tomllib
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ci.archive_contract import Limits, validate_archive
+from ci.archive_metadata import PYTHON_VERSIONS, python_layout
 from ci.distribution_contract import artifact_manifest, require, sources, WHEEL, SDIST
 from ci.installed_controls import controls
 from ci.native_acceptance import admission, native, selectors
@@ -62,7 +63,7 @@ def setup(root, owned):
     runner.run([str(toolenv / "bin/python"), "-I", "-B", "-m", "pip", "install", "--no-cache-dir",
                 "--only-binary=:all:", "--index-url", "https://pypi.org/simple", "-r", str(root / "ci/build-requirements.txt")],
                cwd=owned, phase=phase)
-    zig = toolenv / "lib/python3.13/site-packages/ziglang"
+    zig = toolenv / python_layout(".".join(map(str, sys.version_info[:3]))) / "ziglang"
     require((zig / "zig").is_file())
     runner.env["PATH"] = str(toolenv / "bin") + ":" + str(zig) + ":" + env["PATH"]
     versions = {}
@@ -79,7 +80,7 @@ def distributions(root, owned, runner, tools):
     lock = sha(source / "rust/Cargo.lock")
     runner.run(["cargo", "fetch", "--locked"], cwd=source / "rust", phase=runner.phase(120))
     runner.env["CARGO_NET_OFFLINE"] = "true"
-    for version in ("3.13.0", "3.13.13"):
+    for version in PYTHON_VERSIONS:
         preflight(source, version, runner, runner.phase(180))
     phase = runner.phase(30)
     runner.run(["git", "init", "--quiet"], cwd=source, phase=phase)
@@ -105,7 +106,7 @@ def distributions(root, owned, runner, tools):
         require(list(wheel.parent.iterdir()) == [wheel])
         validate("wheel", wheel, expected)
         evidence["audit"][variant] = inspect(wheel, runner, runner.phase(15))
-        for version in ("3.13.0", "3.13.13"):
+        for version in PYTHON_VERSIONS:
             evidence["runtime"][variant + ":" + version] = install(wheel, package, variant, version, selected, runner, runner.phase(60))
             if variant == "direct":
                 evidence["controls"][version] = controls(source, version, runner, runner.phase(90))
@@ -122,7 +123,7 @@ def main():
     runner, tools, versions = setup(root, owned)
     wheel, sdist, evidence = distributions(root, owned, runner, tools)
     evidence["tools"] = versions
-    manifest = {"version": "0.1.0", "artifacts": {path.name: sha(path) for path in (wheel, sdist)},
+    manifest = {"version": "0.1.1", "artifacts": {path.name: sha(path) for path in (wheel, sdist)},
                 "passed": sorted(evidence["runtime"])}
     artifact_manifest(manifest, manifest["artifacts"])
     destination = root / "release-artifacts"

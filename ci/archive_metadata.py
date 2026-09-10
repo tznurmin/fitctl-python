@@ -12,14 +12,27 @@ import json
 from pathlib import Path
 import re
 
-DIST_INFO = "fitctl-0.1.0.dist-info/"
-NATIVE = "fitctl/_native.cpython-313-x86_64-linux-gnu.so"
+DIST_INFO = "fitctl-0.1.1.dist-info/"
+NATIVE = "fitctl/_native.abi3.so"
+TAG = "cp312-abi3-manylinux_2_28_x86_64"
+PYTHON_VERSIONS = ("3.12.13", "3.13.0", "3.13.13", "3.14.4")
+PROJECT_URLS = {
+    "Repository": "https://github.com/tznurmin/fitctl-python",
+    "Documentation": "https://github.com/tznurmin/fitctl-python/tree/main/docs",
+    "Issues": "https://github.com/tznurmin/fitctl-python/issues",
+}
 LEGAL_FILES = ("LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.txt")
 WHEEL_EXPRESSION = "Apache-2.0 AND BlueOak-1.0.0 AND MIT AND Unicode-3.0"
 
 
 def invalid():
     raise ValueError("archive content invalid")
+
+
+def python_layout(version):
+    if type(version) is not str or version not in PYTHON_VERSIONS:
+        invalid()
+    return "lib/python" + ".".join(version.split(".")[:2]) + "/site-packages"
 
 
 def approved_files():
@@ -49,16 +62,22 @@ def approved_files():
         invalid()
 
 
-def metadata(data, kind="wheel"):
+def metadata(data, kind="wheel", *, readme=None):
     if kind not in ("wheel", "sdist"):
         invalid()
     document = BytesParser().parsebytes(data)
-    if (document.get_all("Name") != ["fitctl"] or document.get_all("Version") != ["0.1.0"]
-            or document.get_all("Requires-Python") != [">=3.13, <3.14"] or document.get_all("Requires-Dist")
+    if (document.get_all("Name") != ["fitctl"] or document.get_all("Version") != ["0.1.1"]
+            or document.get_all("Requires-Python") != [">=3.12"] or document.get_all("Requires-Dist")
             or sorted(document.get_all("License-File", [])) != list(LEGAL_FILES)
             or document.get_all("License-Expression") != [approved_files()["license_expressions"][kind]]
             or document.get_all("Metadata-Version") != ["2.4"] or document.get_all("License")
+            or sorted(document.get_all("Project-URL", [])) != sorted(f"{key}, {value}" for key, value in PROJECT_URLS.items())
+            or document.get_all("Description-Content-Type") != ["text/markdown; charset=UTF-8; variant=GFM"]
             or document.get_all("Dynamic", []) != (["License-Expression"] if kind == "sdist" else [])):
+        invalid()
+    body = data.partition(b"\n\n")[2]
+    # Pinned Maturin appends one serialization newline to the exact README.
+    if (readme is not None and body != readme + b"\n") or re.search(rb"\]\((?!https://|#)[^)]+\)", body):
         invalid()
 
 
@@ -102,7 +121,7 @@ def record(contents):
 
 def validate_content(kind, contents, expected, modes):
     if kind == "sdist":
-        prefix = "fitctl-0.1.0/"
+        prefix = "fitctl-0.1.1/"
         if not all(name.startswith(prefix) for name in contents):
             invalid()
         relative = {name.removeprefix(prefix): data for name, data in contents.items()}
@@ -111,7 +130,7 @@ def validate_content(kind, contents, expected, modes):
             invalid()
         for name, identity in expected.items():
             equal(relative[name], identity, modes[prefix + name])
-        metadata(relative["PKG-INFO"], "sdist")
+        metadata(relative["PKG-INFO"], "sdist", readme=relative.get("README.md"))
         return
     required = {name.removeprefix("python/"): identity for name, identity in expected.items()
                 if name.startswith("python/")}
@@ -126,7 +145,12 @@ def validate_content(kind, contents, expected, modes):
     for name in licenses:
         equal(contents[name], expected[name.rsplit("/", 1)[1]], modes[name])
     metadata(contents[DIST_INFO + "METADATA"])
+    if "README.md" in expected:
+        body = contents[DIST_INFO + "METADATA"].partition(b"\n\n")[2]
+        if not body.endswith(b"\n"):
+            invalid()
+        equal(body[:-1], expected["README.md"], expected["README.md"][2])
     wheel = BytesParser().parsebytes(contents[DIST_INFO + "WHEEL"])
-    if wheel.get_all("Tag") != ["cp313-cp313-manylinux_2_28_x86_64"] or wheel.get_all("Root-Is-Purelib") != ["false"]:
+    if wheel.get_all("Tag") != [TAG] or wheel.get_all("Root-Is-Purelib") != ["false"]:
         invalid()
     record(contents)

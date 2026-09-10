@@ -68,7 +68,7 @@ class Children:
             if not killed and (terminal.name != 'exit_group' or terminal.result != '?' or terminal.arguments not in {'0', '1', '7', '127'}):
                 invalid()
             handles = copy.deepcopy(scope.handles)
-            self.check_child(events, handles, scope)
+            self.check_child(events, handles, scope, descriptor(event.result))
             row = {'tid': descriptor(event.result), 'end': terminal.time, 'waited': False, 'killed': killed, 'kill_seen': False}
             self.rows.append(row); scope.spawned.append(row); self.used.add(events[0].pid)
             return
@@ -110,9 +110,11 @@ class Children:
             return
         forbidden(event)
 
-    def check_child(self, events, handles, scope):
+    def check_child(self, events, handles, scope, child_pid):
         from recorded_effects import PURE
         execs, emitted, memory_queries = 0, 0, 0
+        maps_path, maps_opened, script_started, maps_bytes = None, False, False, 0
+        maps_seeks = 0
         for event in events:
             args, name = arguments(event.arguments), event.name
             if name == 'execve':
@@ -129,6 +131,24 @@ class Children:
                     forbidden(event)
             elif name in PATH_ARGS:
                 path = handles.resolved(event)
+                if path == '/proc/self/maps':
+                    # CPython 3.14 asks glibc for its own main-thread stack limits.
+                    # Admit one read-only startup handle, never another process.
+                    actual = annotation(event.result.split(' ', 1)[0])
+                    if (scope.python_version != '3.14.4' or execs != 1 or maps_opened or script_started
+                            or name != 'openat' or args[2] != 'O_RDONLY|O_CLOEXEC'
+                            or actual != f'/proc/{child_pid}/maps'):
+                        forbidden(event)
+                    maps_path, maps_opened = actual, True
+                    handles.observe(event)
+                    continue
+                if path == maps_path:
+                    if script_started or name != 'newfstatat' or quoted(args[1]) != '' or args[3] != 'AT_EMPTY_PATH' or event.result != '0':
+                        forbidden(event)
+                    handles.observe(event)
+                    continue
+                if name in OPEN and path in {'/tests/collection_provider.py', '/env/bin/ip', '/env/bin/sensors', '/env/bin/nvidia-smi'}:
+                    script_started = True
                 if (name == 'newfstatat' and quoted(args[1]) == '' and args[3] == 'AT_EMPTY_PATH'
                         and path in scope.pipes and args[0] == f'{descriptor(args[0])}<{path}>'
                         and event.result == '0'):
@@ -145,13 +165,16 @@ class Children:
                         and '/usr/local' in scope.runtime and execs == 1):
                     # The admitted public Python provider resolves its own
                     # executable during startup. No other process or target.
-                    allowed = quoted(args[1]) == '/usr/local/bin/python3.13' and event.result == '25'
-                if path in {'/usr/share/locale/locale.alias', '/usr/lib/python313.zip',
+                    allowed = quoted(args[1]) in {'/usr/local/bin/python3.12', '/usr/local/bin/python3.13',
+                                                  '/usr/local/bin/python3.14'} and event.result == '25'
+                if path in {'/usr/share/locale/locale.alias', '/usr/lib/python312.zip', '/usr/lib/python313.zip', '/usr/lib/python314.zip',
                             '/usr/lib/ssl/openssl.cnf', '/usr/share/zoneinfo/UTC0'} and '/usr/local' in scope.runtime:
                     allowed = event.result.startswith('-1 ENOENT')
                 if path in {'/etc/ld-nix.so.preload', '/etc/ld-nix.so.cache', '/etc/ld.so.cache', '/etc/ld.so.preload',
                             '/run/current-system/sw/lib/locale/locale-archive', '/usr/lib/locale/locale-archive',
-                            '/nix/store/lib/python313.zip', '/nix/lib/python313.zip'}:
+                            '/nix/store/lib/python312.zip', '/nix/lib/python312.zip',
+                            '/nix/store/lib/python313.zip', '/nix/lib/python313.zip',
+                            '/nix/store/lib/python314.zip', '/nix/lib/python314.zip'}:
                     allowed = event.result.startswith('-1 ENOENT')
                 if name not in OPEN:
                     allowed |= path in {'/', '/nix', '/nix/store', '/work', '/tests'}
@@ -166,6 +189,26 @@ class Children:
                 if name == 'mmap' and descriptor(args[4]) == -1 and 'MAP_ANONYMOUS' in args[3]:
                     continue
                 path = handles.path(args[4] if name == 'mmap' else args[0])
+                if maps_path is not None and path == maps_path:
+                    if name == 'fstat' and event.result == '0' and not script_started:
+                        continue
+                    if name == 'lseek' and not script_started:
+                        offset, position = descriptor(args[1]), descriptor(event.result)
+                        if (maps_seeks >= 2 or not 0 <= position <= maps_bytes
+                                or (maps_seeks == 0 and (offset != 0 or args[2] != 'SEEK_CUR'))
+                                or (maps_seeks == 1 and (offset != position or args[2] != 'SEEK_SET'))):
+                            forbidden(event)
+                        maps_seeks += 1
+                        continue
+                    if name == 'close' and event.result == '0' and not script_started:
+                        handles.observe(event)
+                        maps_path = None
+                        continue
+                    maps_bytes += max(0, descriptor(event.result))
+                    if name != 'read' or script_started or maps_bytes > 256 * 1024:
+                        forbidden(event)
+                    handles.observe(event)
+                    continue
                 if path not in scope.pipes | BOOTSTRAP_READS and not under(path, ['/env', *scope.runtime]):
                     forbidden(event)
                 if name == 'ioctl' and args[1] not in {'TCGETS', 'TCGETS2', 'FIOCLEX'}:
@@ -182,7 +225,7 @@ class Children:
                 forbidden(event)
             if name not in {'killed', 'exited', 'signal'}:
                 handles.observe(event)
-        if execs != 1:
+        if execs != 1 or maps_path is not None:
             invalid()
 
     def finish(self):

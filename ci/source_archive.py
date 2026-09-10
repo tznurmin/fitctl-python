@@ -48,7 +48,7 @@ def extract(archive, inventory, destination):
             require(len(data) == size and hashlib.sha256(data).hexdigest() == sha)
             total += size
             require(total <= 128 * 1024**2)
-            target = destination / Path(member.name).relative_to("fitctl-0.1.0")
+            target = destination / Path(member.name).relative_to("fitctl-0.1.1")
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open("xb") as output:
                 output.write(data)

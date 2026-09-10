@@ -11,8 +11,10 @@ from pathlib import Path
 from .distribution_contract import require
 
 IMAGES = {
+    "3.12.13": "6e13e65c55e33adf203d77ee371cf8bf5d81bd4902ef07565721f46bf44917af",
     "3.13.0": "b0c5cb8792bf58879f532c1e10f44e1af02d72735758374198f9717d67a7ae52",
     "3.13.13": "f576b530293e74140ea91d262232648d5c4f45640a95ec447757701bfcacf034",
+    "3.14.4": "db5942d111df72110e7a67da3fc5159e83ac85cd24808b91bdc4769e166ed1b7",
 }
 
 

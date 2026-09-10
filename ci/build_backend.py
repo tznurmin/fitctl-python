@@ -7,6 +7,7 @@ import importlib
 from pathlib import Path
 import subprocess
 import sys
+import sysconfig
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -15,7 +16,14 @@ else:
     from .license_metadata import finalize, metadata_bytes
 
 
+def check_interpreter():
+    if (sys.implementation.name != "cpython" or sys.version_info[:2] < (3, 12)
+            or sysconfig.get_config_var("Py_GIL_DISABLED")):
+        raise ValueError("distribution verification failed")
+
+
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    check_interpreter()
     name = importlib.import_module("maturin").build_wheel(wheel_directory, config_settings, metadata_directory)
     finalize("wheel", Path(wheel_directory) / name)
     return name
@@ -28,12 +36,14 @@ def build_sdist(sdist_directory, config_settings=None):
 
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
+    check_interpreter()
     name = importlib.import_module("maturin").build_editable(wheel_directory, config_settings, metadata_directory)
     finalize("wheel", Path(wheel_directory) / name)
     return name
 
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
+    check_interpreter()
     name = importlib.import_module("maturin").prepare_metadata_for_build_wheel(metadata_directory, config_settings)
     path = Path(metadata_directory) / name / "METADATA"
     path.write_bytes(metadata_bytes(path.read_bytes(), "wheel"))
@@ -41,6 +51,7 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 
 def get_requires_for_build_wheel(config_settings=None):
+    check_interpreter()
     return importlib.import_module("maturin").get_requires_for_build_wheel(config_settings)
 
 
@@ -57,6 +68,8 @@ def main(argv=None):
     if not args or args[0] not in ("wheel", "sdist") or args.count("--out") != 1:
         raise ValueError("distribution verification failed")
     kind = args.pop(0)
+    if kind == "wheel":
+        check_interpreter()
     destination = Path(args[args.index("--out") + 1])
     subprocess.run(["maturin", "build" if kind == "wheel" else "sdist", *args], check=True)
     files = list(destination.glob("*.whl" if kind == "wheel" else "*.tar.gz"))

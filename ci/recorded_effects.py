@@ -49,7 +49,7 @@ def thread_end(traces, tid):
     return terminal.time
 
 
-def check_trace(traces, marker_data, runtime):
+def check_trace(traces, marker_data, runtime, *, python_version="3.13.13"):
     if not marker_data.endswith(b"\n"):
         invalid()
     try:
@@ -104,7 +104,7 @@ def check_trace(traces, marker_data, runtime):
                     if state is not None:
                         invalid()
                     state = marker
-                    collection = Scope(marker, handles, runtime, children) if marker in SCOPES else None
+                    collection = Scope(marker, handles, runtime, children, python_version=python_version) if marker in SCOPES else None
                     intervals += 1
                 elif (state, marker) in (("BEGIN", "END"), ("IMPORT_BEGIN", "IMPORT_END")) or (state in SCOPES and marker == "END"):
                     if collection is not None:

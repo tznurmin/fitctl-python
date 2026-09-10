@@ -8,13 +8,18 @@ backend-path = ["."]
 
 [project]
 name = "fitctl"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python bindings for fitctl"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.12"
 dynamic = ["license"]
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.txt"]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/tznurmin/fitctl-python"
+Documentation = "https://github.com/tznurmin/fitctl-python/tree/main/docs"
+Issues = "https://github.com/tznurmin/fitctl-python/issues"
 
 [tool.maturin]
 manifest-path = "rust/Cargo.toml"

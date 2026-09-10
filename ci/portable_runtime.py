@@ -11,6 +11,7 @@ import shutil
 from .distribution_contract import require
 from .installed_process import execute
 from .portable_images import acquire, IMAGES
+from .archive_metadata import NATIVE, python_layout
 
 ROOTS = ("/usr/local", "/lib/x86_64-linux-gnu", "/lib64", "/usr/lib/locale", "/usr/lib/x86_64-linux-gnu")
 
@@ -82,7 +83,7 @@ def install(wheel, package, variant, version, selectors, runner, phase):
     env, inputs = environment(version, label, runner, phase, wheel)
     tests = runner.owned / (label + "-tests")
     shutil.copytree(package / "tests", tests)
-    native = env / "lib/python3.13/site-packages/fitctl/_native.cpython-313-x86_64-linux-gnu.so"
+    native = env / python_layout(version) / NATIVE
     inputs.update(variant=variant, native_sha256=sha(native.read_bytes()), tests=selectors,
                   wheel_sha256=sha(wheel.read_bytes()),
                   source_members_verified=True,
